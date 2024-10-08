@@ -7,6 +7,7 @@ RUN test -n "$APP_VERSION" || (echo "APP_VERSION build-arg is required" && false
 ENV APP_VERSION=$APP_VERSION
 
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app/src
 
 WORKDIR /app
 COPY requirements.txt requirements.txt
@@ -18,4 +19,4 @@ COPY test/ test/
 COPY migrations/ migrations/
 COPY alembic.ini alembic.ini
 
-CMD [ "uvicorn", "--host", "0.0.0.0", "--port", "80", "youoweme.presentation.main:app" ]
+CMD [ "uvicorn", "--host", "0.0.0.0", "--port", "80", "salary_tracker.presentation.main:app" ]

@@ -14,4 +14,4 @@ COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade pip  \
     && pip install --no-cache-dir -r requirements.txt
 
-CMD [ "uvicorn", "--host", "0.0.0.0", "--port", "80", "youoweme.presentation.main:app", "--reload" ]
+CMD [ "uvicorn", "--host", "0.0.0.0", "--port", "80", "salary_tracker.presentation.main:app", "--reload" ]
