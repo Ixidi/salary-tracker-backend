@@ -15,10 +15,7 @@ RUN pip install --no-cache-dir --upgrade pip  \
 
 COPY src/ src/
 COPY test/ test/
-COPY res/ res/
-COPY migration/ migration/
+COPY migrations/ migrations/
 COPY alembic.ini alembic.ini
-COPY log_conf.yml log_conf.yml
-COPY manager.py manager.py
 
-CMD ["/bin/bash"]
+CMD [ "uvicorn", "--host", "0.0.0.0", "--port", "80", "youoweme.presentation.main:app" ]
