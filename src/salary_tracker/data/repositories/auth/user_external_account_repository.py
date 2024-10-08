@@ -26,8 +26,12 @@ class UserExternalAccountRepository(IUserExternalAccountRepository, BaseModel):
 
         return UserExternalAccount.model_validate(result, from_attributes=True)
 
-    async def create(self, user: UserExternalAccount) -> UserExternalAccount:
-        result = DatabaseUserExternalAccount.model_validate(user)
+    async def insert(self, user: UserExternalAccount) -> UserExternalAccount:
+        result = DatabaseUserExternalAccount(
+            provider=user.provider,
+            user_uuid=user.user_uuid,
+            external_id=user.external_id
+        )
         self.session.add(result)
         await self.session.commit()
 

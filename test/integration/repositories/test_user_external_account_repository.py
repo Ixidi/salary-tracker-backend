@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from salary_tracker.domain.auth.models import UserExternalAccount, AuthProvider
 from salary_tracker.data.model import DatabaseUserExternalAccount, DatabaseUser
-from salary_tracker.data.repositories.user_external_account_repository import UserExternalAccountRepository
+from salary_tracker.data.repositories.auth.user_external_account_repository import UserExternalAccountRepository
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ async def test_create(user_external_account_repository, session, database_user):
         user_uuid=database_user.uuid
     )
 
-    result = await user_external_account_repository.create(user_external_account)
+    result = await user_external_account_repository.insert(user_external_account)
     db_result = (await session.execute(
         select(DatabaseUserExternalAccount).filter_by(
             external_id=user_external_account.external_id,

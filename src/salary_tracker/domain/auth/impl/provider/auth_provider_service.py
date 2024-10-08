@@ -1,23 +1,55 @@
-from pydantic import BaseModel, ConfigDict
+from uuid import uuid4
 
+from pydantic import ConfigDict, validate_call
+
+from salary_tracker.domain.auth.factories import IAuthProviderUserDataExtractorFactory
 from salary_tracker.domain.auth.models import AuthProvider, AuthProviderUserData, UserExternalAccount
 from salary_tracker.domain.auth.repositories import IUserExternalAccountRepository
-from salary_tracker.domain.auth.services import IAuthProviderService, IAuthProviderUserDataExtractorFactory
+from salary_tracker.domain.auth.services import IAuthProviderService
+from salary_tracker.domain.user.models import User
+from salary_tracker.domain.user.repositories import IUserRepository
 
 
-class AuthProviderService(IAuthProviderService, BaseModel):
-    auth_provider_user_data_extractor_factory: IAuthProviderUserDataExtractorFactory
-    user_external_account_repository: IUserExternalAccountRepository
+class AuthProviderService(IAuthProviderService):
+    @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+    def __init__(self, auth_provider_user_data_extractor_factory: IAuthProviderUserDataExtractorFactory,
+                 user_external_account_repository: IUserExternalAccountRepository, user_repository: IUserRepository):
+        self._auth_provider_user_data_extractor_factory = auth_provider_user_data_extractor_factory
+        self._user_external_account_repository = user_external_account_repository
+        self._user_repository = user_repository
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    async def create_or_retrieve_user(self, external_token: str, auth_provider: AuthProvider) -> User:
+        #         extractor = self._auth_provider_user_data_extractor_factory.create(provider)
+        #         data = await extractor.extract_from_token(token)
+        #         return data
+        # auth_provider_user_data = await self.auth_provider_service.extract_user_data(external_token, auth_provider)
+        # if not auth_provider_user_data:
+        #     raise InvalidTokenException()
+        # TODO testing
+        auth_provider_user_data = AuthProviderUserData(
+            provider=AuthProvider.GOOGLE,
+            external_id="123",
+            name="HARD CODED",
+            avatar=None,
+            email="hard@coded.com"
+        )
 
-    async def extract_user_data(self, token: str, provider: AuthProvider) -> AuthProviderUserData | None:
-        extractor = self.auth_provider_user_data_extractor_factory.create(provider)
-        data = await extractor.extract_from_token(token)
-        return data
+        user_external_account = await self._user_external_account_repository.get_by_external_id(
+            auth_provider_user_data.external_id, auth_provider)
+        if not user_external_account:
+            user = await self._user_repository.upsert(User(
+                uuid=uuid4(),
+                email=auth_provider_user_data.email,
+                name=auth_provider_user_data.name
+            ))
 
-    async def link_account(self, user_external_account: UserExternalAccount) -> None:
-        await self.user_external_account_repository.create(user_external_account)
+            user_external_account = UserExternalAccount(
+                user_uuid=user.uuid,
+                provider=auth_provider,
+                external_id=auth_provider_user_data.external_id
+            )
+            await self._user_external_account_repository.insert(user_external_account)
+        else:
+            user = await self._user_repository.get_by_uuid(user_external_account.user_uuid)
 
-    async def get_linked_account(self, external_id: str, provider: AuthProvider) -> AuthProviderUserData | None:
-        return await self.user_external_account_repository.get_by_external_id(external_id, provider)
+        return user

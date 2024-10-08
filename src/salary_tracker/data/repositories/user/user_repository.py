@@ -32,10 +32,15 @@ class UserRepository(IUserRepository, BaseModel):
 
         db_user = result.scalar_one_or_none()
         if db_user is None:
-            db_user = DatabaseUser.model_validate(user)
+            db_user = DatabaseUser(
+                uuid=user.uuid,
+                email=user.email,
+                name=user.name
+            )
             self.session.add(db_user)
         else:
-            db_user.sqlmodel_update(user)
+            db_user.email = user.email
+            db_user.name = user.name
 
         await self.session.commit()
 

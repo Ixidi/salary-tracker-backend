@@ -10,7 +10,7 @@ class IRefreshTokenRepository(ABC):
         pass
 
     @abstractmethod
-    async def upsert(self, refresh_token: RefreshToken) -> RefreshToken:
+    async def insert(self, refresh_token: RefreshToken) -> RefreshToken:
         pass
 
     @abstractmethod
@@ -25,5 +25,5 @@ class IUserExternalAccountRepository(ABC):
         pass
 
     @abstractmethod
-    async def create(self, user: UserExternalAccount) -> UserExternalAccount:
+    async def insert(self, user: UserExternalAccount) -> UserExternalAccount:
         pass

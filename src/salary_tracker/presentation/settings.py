@@ -19,9 +19,10 @@ class AppSettings(BaseSettings):
 
     google_app_client_id: str
 
-    auth_cookies_path: str
-    auth_cookies_same_site: Literal['strict', 'lax', 'none']
-    auth_cookies_domain: str
-    auth_cookies_secure: bool
+    refresh_token_cookie_path: str
+    refresh_token_cookie_http_only: bool
+    refresh_token_cookie_same_site: Literal['strict', 'lax', 'none']
+    refresh_token_cookie_domain: str
+    refresh_token_cookie_secure: bool
 
     model_config = ConfigDict(frozen=True)

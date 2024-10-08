@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from salary_tracker.domain.auth.models import RefreshToken
 from salary_tracker.data.model import DatabaseUserRefreshToken, DatabaseUser
-from salary_tracker.data.repositories.refresh_token_repository import RefreshTokenRepository
+from salary_tracker.data.repositories.auth.refresh_token_repository import RefreshTokenRepository
 
 @pytest.fixture
 async def database_user(session):

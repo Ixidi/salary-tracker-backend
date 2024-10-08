@@ -3,12 +3,13 @@ from urllib.request import Request
 from fastapi import FastAPI
 from starlette.responses import JSONResponse
 
-from salary_tracker.usecase.exceptions import UseCaseException, InvalidTokenException
+from salary_tracker.usecase.exceptions import UseCaseException, AuthException, PermissionDeniedException
 
 
 def apply_error_handler(app: FastAPI):
     error_codes = {
-        InvalidTokenException: 401
+        AuthException: 401,
+        PermissionDeniedException: 403
     }
 
     @app.exception_handler(UseCaseException)
@@ -20,5 +21,16 @@ def apply_error_handler(app: FastAPI):
             content={
                 "error": exc.key,
                 "detail": exc.message
+            }
+        )
+
+    @app.exception_handler(Exception)
+    async def exception_handler(request: Request, exc: Exception):
+        # TODO insert request id
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "unexpected_error",
+                "detail": "An unexpected error occurred, please report this."
             }
         )

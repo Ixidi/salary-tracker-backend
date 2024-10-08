@@ -1,45 +1,23 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict, validate_call
 
-from salary_tracker.domain.auth.models import TokenPair, AuthProvider, UserExternalAccount, AuthProviderUserData
+from salary_tracker.domain.auth.models import TokenPair, AuthProvider
 from salary_tracker.domain.auth.services import ITokenService, IAuthProviderService
-from salary_tracker.domain.user.services import IUserService
-from salary_tracker.usecase.exceptions import InvalidTokenException
+from salary_tracker.domain.exceptions import InvalidTokenDomainException
+from salary_tracker.domain.user.models import User
+from salary_tracker.usecase.exceptions import AuthException
 
 
-class LoginWithAuthProviderUseCase(BaseModel):
-    token_service: ITokenService
-    user_service: IUserService
-    auth_provider_service: IAuthProviderService
+class LoginWithAuthProviderUseCase:
+    @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+    def __init__(self, token_service: ITokenService, auth_provider_service: IAuthProviderService):
+        self._token_service = token_service
+        self._auth_provider_service = auth_provider_service
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    async def __call__(self, external_token: str, auth_provider: AuthProvider) -> TokenPair:
+        try:
+            user = await self._auth_provider_service.create_or_retrieve_user(external_token, auth_provider)
+            token_pair = await self._token_service.create_token_pair(user.uuid)
 
-    async def __call__(self, external_token: str, auth_provider: AuthProvider, user_agent: str) -> TokenPair:
-        # auth_provider_user_data = await self.auth_provider_service.extract_user_data(external_token, auth_provider)
-        # if not auth_provider_user_data:
-        #     raise InvalidTokenException()
-        # TODO testing
-
-        auth_provider_user_data = AuthProviderUserData(
-            provider=AuthProvider.GOOGLE,
-            external_id="123",
-            name="HARD CODED",
-            avatar=None,
-            email="hard@coded.com"
-        )
-
-        user_external_account = await self.auth_provider_service.get_linked_account(auth_provider_user_data.external_id, auth_provider)
-        if not user_external_account:
-            user = await self.user_service.create_instance(auth_provider_user_data.email, auth_provider_user_data.name)
-            await self.user_service.upsert(user)
-
-            user_external_account = UserExternalAccount(
-                user_uuid=user.uuid,
-                provider=auth_provider,
-                external_id=auth_provider_user_data.external_id
-            )
-            await self.auth_provider_service.link_account(user_external_account)
-
-        token_pair = await self.token_service.create_token_pair(user_external_account.user_uuid, user_agent)
-        await self.token_service.save_refresh_token(token_pair.refresh_token)
-
-        return token_pair
+            return token_pair
+        except InvalidTokenDomainException:
+            raise AuthException("Invalid token")

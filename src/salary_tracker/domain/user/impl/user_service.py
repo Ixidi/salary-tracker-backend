@@ -1,30 +1,30 @@
 from uuid import uuid4
 
-from pydantic import EmailStr, BaseModel, ConfigDict
+from pydantic import validate_call, ConfigDict
 
 from salary_tracker.domain.exceptions import DomainException
-from salary_tracker.domain.user.models import User
+from salary_tracker.domain.user.models import User, NewUserData
 from salary_tracker.domain.user.repositories import IUserRepository
 from salary_tracker.domain.user.services import IUserService
 
 
-class UserService(IUserService, BaseModel):
-    user_repository: IUserRepository
+class UserService(IUserService):
+    @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+    def __init__(self, user_repository: IUserRepository):
+        self._user_repository = user_repository
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    async def create_instance(self, email: EmailStr, name: str) -> User:
-        return User(
-            uuid=uuid4(),
-            name=name,
-            email=email
+    async def create(self, new_user_data: NewUserData) -> User:
+        data = new_user_data.model_dump()
+        data.update(
+            uuid=uuid4()
         )
 
-    async def upsert(self, user: User) -> User:
-        return await self.user_repository.upsert(user)
+        user = User.model_validate(data)
+
+        return await self._user_repository.upsert(user)
 
     async def get_by_uuid(self, uuid) -> User:
-        result = await self.user_repository.get_by_uuid(uuid)
+        result = await self._user_repository.get_by_uuid(uuid)
         if result is None:
             raise DomainException(f"User with uuid {uuid} not found")
 

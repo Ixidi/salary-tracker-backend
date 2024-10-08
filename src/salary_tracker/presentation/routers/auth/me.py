@@ -10,7 +10,7 @@ from salary_tracker.usecase.user.get_user import GetUserUseCase
 router = APIRouter()
 
 @router.get(
-    "/me",
+    "/me/",
     description="Get the current user",
     response_model=UserResponse
 )

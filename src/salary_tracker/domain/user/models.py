@@ -7,3 +7,8 @@ class User(BaseModel):
     uuid: UUID
     name: str
     email: EmailStr
+
+
+class NewUserData(BaseModel):
+    name: str
+    email: EmailStr

@@ -1,24 +1,18 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict, validate_call
 
-from salary_tracker.domain.auth.services import ITokenService
 from salary_tracker.domain.auth.models import TokenPair
-from salary_tracker.usecase.exceptions import InvalidTokenException
+from salary_tracker.domain.auth.services import ITokenService
+from salary_tracker.domain.exceptions import InvalidTokenDomainException
+from salary_tracker.usecase.exceptions import AuthException
 
 
-class RotateRefreshTokenUseCase(BaseModel):
-    token_service: ITokenService
+class RotateRefreshTokenUseCase:
+    @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+    def __init__(self, token_service: ITokenService):
+        self._token_service = token_service
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    async def __call__(self, refresh_token: str, user_agent: str) -> TokenPair:
-        refresh_token = await self.token_service.validate_refresh_token(refresh_token)
-        if not refresh_token:
-            raise InvalidTokenException()
-
-        await self.token_service.delete_refresh_token(refresh_token.token)
-
-        user_uuid = refresh_token.user_uuid
-        token_pair = await self.token_service.create_token_pair(user_uuid, user_agent)
-        await self.token_service.save_refresh_token(token_pair.refresh_token)
-
-        return token_pair
+    async def __call__(self, refresh_token: str) -> TokenPair:
+        try:
+            return await self._token_service.rotate_refresh_token(refresh_token)
+        except InvalidTokenDomainException as e:
+            raise AuthException("Invalid token")

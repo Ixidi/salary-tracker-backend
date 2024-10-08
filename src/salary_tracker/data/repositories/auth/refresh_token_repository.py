@@ -23,19 +23,18 @@ class RefreshTokenRepository(IRefreshTokenRepository, BaseModel):
 
         return RefreshToken.model_validate(user_refresh_token, from_attributes=True)
 
-    async def upsert(self, refresh_token: RefreshToken) -> RefreshToken:
+    async def insert(self, refresh_token: RefreshToken) -> RefreshToken:
         result = await self.session.execute(
             select(DatabaseUserRefreshToken).filter_by(user_uuid=refresh_token.user_uuid)
         )
 
-        user_refresh_token = result.scalar_one_or_none()
-        if user_refresh_token is None:
-            user_refresh_token = DatabaseUserRefreshToken.model_validate(refresh_token)
+        user_refresh_token = DatabaseUserRefreshToken(
+            user_uuid=refresh_token.user_uuid,
+            token=refresh_token.token,
+            expires_at=refresh_token.expires_at
+        )
 
-            self.session.add(user_refresh_token)
-        else:
-            user_refresh_token.sqlmodel_update(refresh_token)
-
+        self.session.add(user_refresh_token)
         await self.session.commit()
 
         return RefreshToken.model_validate(user_refresh_token, from_attributes=True)

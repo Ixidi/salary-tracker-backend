@@ -1,113 +1,120 @@
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, timedelta, UTC
 from decimal import Decimal
+from typing import List
 from uuid import UUID
 
-from sqlalchemy import DateTime
-from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import DateTime, ForeignKey, func, TypeDecorator
+from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
 
 from salary_tracker.domain.auth.models import AuthProvider
 
-TZDateTime = DateTime(timezone=True)
+
+class TZDateTime(TypeDecorator):
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value == datetime.max:
+            return 'infinity'
+        if value == datetime.min:
+            return '-infinity'
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value == 'infinity':
+            return datetime.max.replace(tzinfo=UTC)
+        if value == '-infinity':
+            return datetime.min.replace(tzinfo=UTC)
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
 
-class Base(SQLModel):
-    created_at: datetime | None = Field(
-        default_factory=lambda: datetime.now(UTC),
-        sa_type=TZDateTime
-    )
-
-    updated_at: datetime | None = Field(
-        default_factory=lambda: datetime.now(UTC),
-        sa_type=TZDateTime,
-        sa_column_kwargs={
-            "onupdate": lambda: datetime.now(UTC),
-        },
-    )
+class Base(DeclarativeBase):
+    created_at: Mapped[datetime] = mapped_column(type_=TZDateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(type_=TZDateTime, server_default=func.now(),
+                                                 server_onupdate=func.now())
 
 
-class DatabaseUser(Base, table=True):
+class DatabaseUser(Base):
     __tablename__ = 'users'
 
-    uuid: UUID = Field(primary_key=True)
-    email: str = Field(index=True, unique=True)
-    name: str
+    uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(index=True, unique=True)
+    name: Mapped[str]
 
 
-class DatabaseUserRefreshToken(Base, table=True):
+class DatabaseUserRefreshToken(Base):
     __tablename__ = 'user_refresh_tokens'
 
-    user_uuid: UUID = Field(primary_key=True, foreign_key='users.uuid')
-    token: str = Field(primary_key=True)
-    user_agent: str
-    expires_at: datetime = Field(sa_type=TZDateTime)
+    user_uuid: Mapped[UUID] = mapped_column(ForeignKey('users.uuid'), primary_key=True)
+    token: Mapped[str] = mapped_column(primary_key=True)
+    expires_at: Mapped[datetime] = mapped_column(TZDateTime)
 
 
-class DatabaseUserExternalAccount(Base, table=True):
+class DatabaseUserExternalAccount(Base):
     __tablename__ = 'user_external_accounts'
 
-    provider: AuthProvider = Field(primary_key=True)
-    user_uuid: UUID = Field(primary_key=True, foreign_key='users.uuid')
-    external_id: str
+    provider: Mapped[AuthProvider] = mapped_column(primary_key=True)
+    user_uuid: Mapped[UUID] = mapped_column(ForeignKey('users.uuid'), primary_key=True)
+    external_id: Mapped[str]
 
 
-class DatabaseRateTableDuration(Base, table=True):
-    __tablename__ = 'sheet_rate_table_durations'
+class DatabaseSheetDuration(Base):
+    __tablename__ = 'sheet_durations'
 
-    rate_table_uuid: UUID = Field(foreign_key='sheet_rate_tables.uuid')
-    duration: timedelta = Field(primary_key=True)
-
-
-class DatabaseRateTableGroupSize(Base, table=True):
-    __tablename__ = 'sheet_rate_table_group_sizes'
-
-    rate_table_uuid: UUID = Field(foreign_key='sheet_rate_tables.uuid')
-    group_size: int = Field(primary_key=True)
+    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey('sheets.uuid'), primary_key=True)
+    duration: Mapped[timedelta] = mapped_column(primary_key=True)
 
 
-class DatabaseRateTableRate(Base, table=True):
-    __tablename__ = 'sheet_rate_table_rates'
+class DatabaseSheetGroupSize(Base):
+    __tablename__ = 'sheet_group_sizes'
 
-    rate_table_uuid: UUID = Field(foreign_key='sheet_rate_tables.uuid', primary_key=True)
-    group_size: int = Field(primary_key=True)
-    duration: timedelta = Field(primary_key=True)
-
-    rate: Decimal
+    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey('sheets.uuid'), primary_key=True)
+    group_size: Mapped[int] = mapped_column(primary_key=True)
 
 
-class DatabaseRateTable(Base, table=True):
-    __tablename__ = 'sheet_rate_tables'
-
-    uuid: UUID = Field(primary_key=True)
-    sheet_uuid: UUID = Field(foreign_key='sheets.uuid')
-
-    valid_from: datetime = Field(sa_type=TZDateTime)
-    valid_to: datetime = Field(sa_type=TZDateTime)
-
-    durations: list[DatabaseRateTableDuration] = Relationship(cascade_delete=True)
-    group_sizes: list[DatabaseRateTableGroupSize] = Relationship(cascade_delete=True)
-    rates: list[DatabaseRateTableRate] = Relationship(cascade_delete=True)
-
-
-class DatabaseSheetRecord(Base, table=True):
+class DatabaseSheetRecord(Base):
     __tablename__ = 'sheet_records'
 
-    uuid: UUID = Field(primary_key=True)
-    sheet_uuid: UUID = Field(foreign_key='sheets.uuid')
+    uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey('sheets.uuid'))
+    duration: Mapped[timedelta]
+    group_size: Mapped[int]
+    group_name: Mapped[str]
+    happened_at: Mapped[datetime] = mapped_column(TZDateTime)
+    additional_info: Mapped[str | None]
 
-    duration: timedelta
-    group_size: int
-    group_name: str
-    happened_at: datetime = Field(sa_type=TZDateTime)
-    additional_info: str | None
+
+class DatabaseSheetRate(Base):
+    __tablename__ = 'sheet_rates'
+
+    rate_table_uuid: Mapped[UUID] = mapped_column(ForeignKey('sheet_rate_tables.uuid'), primary_key=True)
+    group_size: Mapped[int] = mapped_column(primary_key=True)
+    duration: Mapped[timedelta] = mapped_column(primary_key=True)
+    rate: Mapped[Decimal]
 
 
-class DatabaseSheet(Base, table=True):
+class DatabaseSheetRateTable(Base):
+    __tablename__ = 'sheet_rate_tables'
+
+    uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey('sheets.uuid'))
+    valid_from: Mapped[datetime] = mapped_column(TZDateTime)
+    valid_to: Mapped[datetime] = mapped_column(TZDateTime)
+
+    rates: Mapped[List[DatabaseSheetRate]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+
+
+class DatabaseSheet(Base):
     __tablename__ = 'sheets'
 
-    uuid: UUID = Field(primary_key=True)
-    owner_user_uuid: UUID = Field(foreign_key='users.uuid')
-    title: str
-    description: str
+    uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    owner_user_uuid: Mapped[UUID] = mapped_column(ForeignKey('users.uuid'))
+    title: Mapped[str]
+    description: Mapped[str]
 
-    rate_tables: list[DatabaseRateTable] = Relationship(cascade_delete=True)
-    records: list[DatabaseSheetRecord] = Relationship(cascade_delete=True)
+    durations: Mapped[List[DatabaseSheetDuration]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+    group_sizes: Mapped[List[DatabaseSheetGroupSize]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+    rate_tables: Mapped[List[DatabaseSheetRateTable]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+    records: Mapped[List[DatabaseSheetRecord]] = relationship(lazy="selectin", cascade="all, delete-orphan")

@@ -1,10 +1,8 @@
-from contextlib import asynccontextmanager
 from os import environ
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from salary_tracker.presentation.dependencies.data import get_database
 from salary_tracker.presentation.dependencies.presentation import get_settings
 from salary_tracker.presentation.error_handler import apply_error_handler
 from salary_tracker.presentation.routers.root import get_root_router

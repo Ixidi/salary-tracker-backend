@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from salary_tracker.domain.user.models import User
 from salary_tracker.data.model import DatabaseUser
-from salary_tracker.data.repositories.user_repository import UserRepository
+from salary_tracker.data.repositories.user.user_repository import UserRepository
 
 
 @pytest.fixture
