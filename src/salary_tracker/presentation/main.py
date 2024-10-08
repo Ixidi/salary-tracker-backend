@@ -21,7 +21,7 @@ def create_app(settings: AppSettings) -> FastAPI:
 
     apply_error_handler(fastapi)
 
-    cors_allow_origins = [str(url) for url in settings.cors_allow_origins]
+    cors_allow_origins = settings.cors_allow_origins
     fastapi.add_middleware(
         CORSMiddleware,
         allow_origins=cors_allow_origins if cors_allow_origins else ['*'],
@@ -29,6 +29,8 @@ def create_app(settings: AppSettings) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"]
     )
+
+    print(cors_allow_origins)
 
     fastapi.include_router(get_root_router())
 

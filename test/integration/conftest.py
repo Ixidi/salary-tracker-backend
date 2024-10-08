@@ -9,7 +9,7 @@ from httpx import AsyncClient, ASGITransport
 
 from salary_tracker.domain.user.models import User
 from salary_tracker.data.database import Database
-from sqlmodel import SQLModel
+from src.salary_tracker.data.model import Base
 
 from salary_tracker.data.model import DatabaseUser
 from salary_tracker.presentation.dependencies.auth import get_current_user_uuid
@@ -33,10 +33,10 @@ def event_loop(request):
 async def database(settings):
     database = Database(database_url=settings.database_url.unicode_string())
     async with database.connect() as connection:
-        await connection.run_sync(SQLModel.metadata.create_all)
+        await connection.run_sync(Base.metadata.create_all)
     yield database
     async with database.connect() as connection:
-        await connection.run_sync(SQLModel.metadata.drop_all)
+        await connection.run_sync(Base.metadata.drop_all)
     await database.close()
 
 @pytest.fixture

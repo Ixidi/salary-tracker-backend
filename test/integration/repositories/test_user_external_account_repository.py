@@ -53,7 +53,7 @@ async def test_get_by_external_id_does_not_exist(user_external_account_repositor
 
     assert result is None
 
-async def test_create(user_external_account_repository, session, database_user):
+async def test_insert(user_external_account_repository, session, database_user):
     user_external_account = UserExternalAccount(
         external_id="123",
         provider=AuthProvider.GOOGLE,

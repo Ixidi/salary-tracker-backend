@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings
 
 class AppSettings(BaseSettings):
     root_path: str
-    cors_allow_origins: frozenset[AnyHttpUrl]
+    cors_allow_origins: frozenset[str]
 
     database_url: PostgresDsn
 

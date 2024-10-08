@@ -28,13 +28,11 @@ async def test_get_refresh_token_exists(refresh_token_repository, session, datab
     expected_token = RefreshToken(
         token="Test Token",
         user_uuid=database_user.uuid,
-        user_agent="Test User Agent",
         expires_at=datetime(2022, 1, 1, tzinfo=UTC)
     )
     session.add(DatabaseUserRefreshToken(
         token=expected_token.token,
         user_uuid=expected_token.user_uuid,
-        user_agent=expected_token.user_agent,
         expires_at=expected_token.expires_at
     ))
     await session.commit()
@@ -50,62 +48,26 @@ async def test_get_refresh_token_does_not_exist(refresh_token_repository):
 
     assert result is None
 
-async def test_upsert_update(refresh_token_repository, session, database_user):
-    old_token = RefreshToken(
-        token="Token",
-        user_uuid=database_user.uuid,
-        user_agent="Old User Agent",
-        expires_at=datetime(2022, 1, 1, tzinfo=UTC)
-    )
-
+async def test_insert(refresh_token_repository, session, database_user):
     expected_token = RefreshToken(
         token="Token",
         user_uuid=database_user.uuid,
-        user_agent=old_token.user_agent,
-        expires_at=old_token.expires_at
+        expires_at=datetime(2022, 1, 1, tzinfo=UTC)
     )
 
-    session.add(DatabaseUserRefreshToken(
-        token=old_token.token,
-        user_uuid=old_token.user_uuid,
-        user_agent=old_token.user_agent,
-        expires_at=old_token.expires_at
-    ))
-    await session.commit()
-
-    await refresh_token_repository.upsert(expected_token)
+    await refresh_token_repository.insert(expected_token)
 
     result = await session.execute(select(DatabaseUserRefreshToken).filter_by(token=expected_token.token))
     scalar = result.scalar_one()
 
     assert scalar.token == expected_token.token
     assert scalar.user_uuid == expected_token.user_uuid
-    assert scalar.user_agent == expected_token.user_agent
-    assert scalar.expires_at == expected_token.expires_at
-
-async def test_upsert_insert(refresh_token_repository, session, database_user):
-    expected_token = RefreshToken(
-        token="Token",
-        user_uuid=database_user.uuid,
-        user_agent="Old User Agent",
-        expires_at=datetime(2022, 1, 1, tzinfo=UTC)
-    )
-
-    await refresh_token_repository.upsert(expected_token)
-
-    result = await session.execute(select(DatabaseUserRefreshToken).filter_by(token=expected_token.token))
-    scalar = result.scalar_one()
-
-    assert scalar.token == expected_token.token
-    assert scalar.user_uuid == expected_token.user_uuid
-    assert scalar.user_agent == expected_token.user_agent
     assert scalar.expires_at == expected_token.expires_at
 
 async def test_delete(refresh_token_repository, session, database_user):
     session.add(DatabaseUserRefreshToken(
         token="Token",
         user_uuid=database_user.uuid,
-        user_agent="User Agent",
         expires_at=datetime(2022, 1, 1, tzinfo=UTC)
     ))
     await session.commit()
