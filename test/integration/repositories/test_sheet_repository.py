@@ -107,38 +107,24 @@ async def test_get_by_owner_paginated(sheet_repository, database_user, session):
         ))
     await session.commit()
 
-    first_page_result = await sheet_repository.get_by_owner_paginated(
-        PaginatedRequest(
-            filters=database_user.uuid,
-            page_params=PageParams(
-                page=0,
-                per_page=2
+    async def get_paginated(page: int):
+        return await sheet_repository.get_by_owner_paginated(
+            PaginatedRequest(
+                filters=database_user.uuid,
+                page_params=PageParams(
+                    page=page,
+                    per_page=2
+                )
             )
         )
-    )
 
-    second_page_result = await sheet_repository.get_by_owner_paginated(
-        PaginatedRequest(
-            filters=database_user.uuid,
-            page_params=PageParams(
-                page=1,
-                per_page=2
-            )
-        )
-    )
-
-    third_page_result = await sheet_repository.get_by_owner_paginated(
-        PaginatedRequest(
-            filters=database_user.uuid,
-            page_params=PageParams(
-                page=2,
-                per_page=2
-            )
-        )
-    )
-
+    first_page_result = await get_paginated(0)
     assert first_page_result.items == expected[:2]
+
+    second_page_result = await get_paginated(1)
     assert second_page_result.items == expected[2:]
+
+    third_page_result = await get_paginated(3)
     assert third_page_result.items == []
 
 

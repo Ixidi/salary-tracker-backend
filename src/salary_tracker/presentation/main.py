@@ -30,8 +30,6 @@ def create_app(settings: AppSettings) -> FastAPI:
         allow_headers=["*"]
     )
 
-    print(cors_allow_origins)
-
     fastapi.include_router(get_root_router())
 
     return fastapi

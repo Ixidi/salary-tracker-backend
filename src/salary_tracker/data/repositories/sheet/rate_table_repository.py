@@ -14,10 +14,10 @@ from salary_tracker.domain.sheet.repositories import IRateTableRepository
 class RateTableRepository(IRateTableRepository):
     @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
     def __init__(self, session: AsyncSession):
-        self.session = session
+        self._session = session
 
     async def get_for_datetime(self, sheet_uuid: UUID, datetime_point: datetime) -> RateTable:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(DatabaseSheetRateTable)
             .where(
                 (DatabaseSheetRateTable.sheet_uuid == sheet_uuid),
@@ -33,7 +33,7 @@ class RateTableRepository(IRateTableRepository):
         return RateTable.model_validate(scalar, from_attributes=True)
 
     async def get_for_sheet(self, sheet_uuid: UUID) -> list[RateTable]:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(DatabaseSheetRateTable)
             .filter_by(sheet_uuid=sheet_uuid)
         )
@@ -42,7 +42,7 @@ class RateTableRepository(IRateTableRepository):
         return [RateTable.model_validate(scalar, from_attributes=True) for scalar in scalars]
 
     async def upsert(self, sheet_uuid: UUID, rate_tables: list[RateTable]) -> list[RateTable]:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(DatabaseSheet)
             .filter_by(uuid=sheet_uuid)
         )
@@ -68,6 +68,6 @@ class RateTableRepository(IRateTableRepository):
 
         sheet.rate_tables = rate_tables_db
 
-        await self.session.commit()
+        await self._session.commit()
 
         return [RateTable.model_validate(rate_table, from_attributes=True) for rate_table in sheet.rate_tables]

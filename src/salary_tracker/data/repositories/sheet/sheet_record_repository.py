@@ -29,7 +29,7 @@ class SheetRecordRepository(GetPaginatedMixin[DatabaseSheetRecord, Record, Sheet
         return Record.model_validate(db_result, from_attributes=True)
 
     async def get_by_uuid(self, sheet_uuid: UUID, record_uuid: UUID) -> Record | None:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(DatabaseSheetRecord)
             .filter_by(sheet_uuid=sheet_uuid, uuid=record_uuid)
         )
@@ -54,13 +54,13 @@ class SheetRecordRepository(GetPaginatedMixin[DatabaseSheetRecord, Record, Sheet
             additional_info=record.additional_info
         )
 
-        self.session.add(record_db)
-        await self.session.commit()
+        self._session.add(record_db)
+        await self._session.commit()
 
         return Record.model_validate(record_db, from_attributes=True)
 
     async def delete(self, sheet_uuid: UUID, record_uuid: UUID) -> None:
-        record = await self.session.execute(
+        record = await self._session.execute(
             select(DatabaseSheetRecord)
             .filter_by(sheet_uuid=sheet_uuid, uuid=record_uuid)
         )
@@ -69,4 +69,5 @@ class SheetRecordRepository(GetPaginatedMixin[DatabaseSheetRecord, Record, Sheet
         if not record:
             raise DataException(f"Record with uuid {record_uuid} not found")
 
-        await self.session.delete(record)
+        await self._session.delete(record)
+        await self._session.commit()

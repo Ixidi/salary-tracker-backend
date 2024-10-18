@@ -45,7 +45,7 @@ class TokenService(ITokenService):
         self._refresh_token_repository = refresh_token_repository
         self._user_repository = user_repository
 
-    async def validate_access_token(self, access_token: str) -> AccessToken | None:
+    async def validate_access_token(self, access_token: str) -> AccessToken:
         try:
             claims = jwt.decode(
                 token=access_token,
@@ -62,9 +62,6 @@ class TokenService(ITokenService):
             )
         except JWTError as e:
             raise InvalidTokenDomainException()
-
-    async def validate_refresh_token(self, refresh_token: str) -> RefreshToken | None:
-        return await self._refresh_token_repository.get_by_token(refresh_token)
 
     async def create_token_pair(self, user_uuid: UUID) -> TokenPair:
         user = await self._user_repository.get_by_uuid(user_uuid)

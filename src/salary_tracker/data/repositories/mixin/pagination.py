@@ -19,7 +19,7 @@ class GetPaginatedMixin(Generic[DatabaseModelType, DataType, FiltersType], ABC):
 
     @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
     def __init__(self, session: AsyncSession):
-        self.session = session
+        self._session = session
 
     @abstractmethod
     def _apply_pagination_filters(self, query: Select, filters: FiltersType) -> Select:
@@ -30,7 +30,7 @@ class GetPaginatedMixin(Generic[DatabaseModelType, DataType, FiltersType], ABC):
         pass
 
     async def _get_paginated(self, request: PaginatedRequest[FiltersType]) -> PaginatedResult[DataType]:
-        session = self.session
+        session = self._session
         query = self._apply_pagination_filters(select(self._model), request.filters)
 
         page_params = request.page_params

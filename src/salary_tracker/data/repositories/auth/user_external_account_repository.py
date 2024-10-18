@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, validate_call
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,13 +7,13 @@ from salary_tracker.domain.auth.repositories import IUserExternalAccountReposito
 from salary_tracker.data.model import DatabaseUserExternalAccount
 
 
-class UserExternalAccountRepository(IUserExternalAccountRepository, BaseModel):
-    session: AsyncSession
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+class UserExternalAccountRepository(IUserExternalAccountRepository):
+    @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+    def __init__(self, session: AsyncSession):
+        self._session = session
 
     async def get_by_external_id(self, external_id: str, auth_provider: AuthProvider) -> UserExternalAccount | None:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(DatabaseUserExternalAccount).filter_by(
                 external_id=external_id,
                 provider=auth_provider
@@ -32,8 +32,8 @@ class UserExternalAccountRepository(IUserExternalAccountRepository, BaseModel):
             user_uuid=user.user_uuid,
             external_id=user.external_id
         )
-        self.session.add(result)
-        await self.session.commit()
+        self._session.add(result)
+        await self._session.commit()
 
         return UserExternalAccount.model_validate(result, from_attributes=True)
 

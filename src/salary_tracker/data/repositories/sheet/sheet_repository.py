@@ -32,7 +32,7 @@ class SheetRepository(GetPaginatedMixin[DatabaseSheet, Sheet, UUID], ISheetRepos
         return _map(db_result)
 
     async def get_by_uuid(self, sheet_uuid: UUID) -> Sheet | None:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(DatabaseSheet).filter_by(uuid=sheet_uuid)
         )
 
@@ -46,7 +46,7 @@ class SheetRepository(GetPaginatedMixin[DatabaseSheet, Sheet, UUID], ISheetRepos
         return await self._get_paginated(request)
 
     async def upsert(self, sheet: Sheet) -> Sheet:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(DatabaseSheet).filter_by(uuid=sheet.uuid)
         )
 
@@ -74,7 +74,7 @@ class SheetRepository(GetPaginatedMixin[DatabaseSheet, Sheet, UUID], ISheetRepos
                 group_sizes=group_sizes,
                 records=[]
             )
-            self.session.add(sheet_db)
+            self._session.add(sheet_db)
         else:
             sheet_db.owner_user_uuid = sheet.owner_user_uuid
             sheet_db.title = sheet.title
@@ -82,12 +82,12 @@ class SheetRepository(GetPaginatedMixin[DatabaseSheet, Sheet, UUID], ISheetRepos
             sheet_db.group_sizes = group_sizes
             sheet_db.description = sheet.description
 
-        await self.session.commit()
+        await self._session.commit()
 
         return _map(sheet_db)
 
     async def delete(self, sheet_uuid: UUID) -> None:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(DatabaseSheet).filter_by(uuid=sheet_uuid)
         )
 
@@ -95,5 +95,5 @@ class SheetRepository(GetPaginatedMixin[DatabaseSheet, Sheet, UUID], ISheetRepos
         if sheet_db is None:
             raise DataException(f"Sheet with uuid {sheet_uuid} not found")
 
-        await self.session.delete(sheet_db)
-        await self.session.commit()
+        await self._session.delete(sheet_db)
+        await self._session.commit()

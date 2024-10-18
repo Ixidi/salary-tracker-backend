@@ -13,10 +13,6 @@ class ITokenService(ABC):
         pass
 
     @abstractmethod
-    async def validate_refresh_token(self, refresh_token: str) -> RefreshToken:
-        pass
-
-    @abstractmethod
     async def create_token_pair(self, user_uuid: UUID) -> TokenPair:
         pass
 

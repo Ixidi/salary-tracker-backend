@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 
+from salary_tracker.presentation.responses.error import ErrorResponse
+
+
 def get_auth_router():
     from salary_tracker.presentation.routers.auth.me import router as me_router
     from salary_tracker.presentation.routers.auth.auth_provider_login import router as auth_provider_login_router
@@ -37,7 +40,14 @@ def get_sheet_router():
     return router
 
 def get_root_router():
-    router = APIRouter(prefix="/api/v1")
+    router = APIRouter(
+        prefix="/api/v1",
+        responses={
+            400: {"model": ErrorResponse},
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+        }
+    )
     router.include_router(get_auth_router())
     router.include_router(get_sheet_router())
     return router

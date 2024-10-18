@@ -19,13 +19,6 @@ class AuthProviderService(IAuthProviderService):
         self._user_repository = user_repository
 
     async def create_or_retrieve_user(self, external_token: str, auth_provider: AuthProvider) -> User:
-        #         extractor = self._auth_provider_user_data_extractor_factory.create(provider)
-        #         data = await extractor.extract_from_token(token)
-        #         return data
-        # auth_provider_user_data = await self.auth_provider_service.extract_user_data(external_token, auth_provider)
-        # if not auth_provider_user_data:
-        #     raise InvalidTokenException()
-        # TODO testing
         auth_provider_user_data = AuthProviderUserData(
             provider=AuthProvider.GOOGLE,
             external_id="123",
@@ -33,6 +26,7 @@ class AuthProviderService(IAuthProviderService):
             avatar=None,
             email="hard@coded.com"
         )
+        # TODO implement the logic to extract the user data from the external token, for now we are hard coding the data
 
         user_external_account = await self._user_external_account_repository.get_by_external_id(
             auth_provider_user_data.external_id, auth_provider)
